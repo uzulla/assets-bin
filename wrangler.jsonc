@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "assets-bin",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-22",
+  "vars": {
+    "R2_BUCKET_NAME": "assets-bin"
+  },
+  "r2_buckets": [
+    {
+      "binding": "FILES",
+      "bucket_name": "assets-bin",
+      "remote": true
+    }
+  ]
+}
