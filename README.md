@@ -6,9 +6,10 @@ Cloudflare Workers と R2 で動く、小さなファイル置き場です。Hon
 
 ## セットアップ
 
-Node.js 22 以上を用意し、依存関係をインストールします。
+Node.js 24 LTS を用意し、依存関係をインストールします。`nvm` を使う場合は、同梱の `.nvmrc` で切り替えられます。
 
 ```sh
+nvm use
 npm install
 ```
 
