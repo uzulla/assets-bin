@@ -6,18 +6,21 @@ Cloudflare Workers と R2 で動く、小さなファイル置き場です。Hon
 
 ## セットアップ
 
-Node.js 24 LTS を用意し、依存関係をインストールします。`nvm` を使う場合は、同梱の `.nvmrc` で切り替えられます。
+開発ツールは [mise](https://mise.jdx.dev/) で管理します。mise `2025.12.0` 以上を用意し、Node.js 24 LTS、npm、プロジェクト依存関係をインストールします。
 
 ```sh
-nvm use
-npm install
+mise trust
+mise install
+mise run setup
 ```
+
+`mise.toml` で Node.js と npm のバージョンを固定しています。Wrangler、TypeScript、Vitest などのプロジェクト固有ツールは `package-lock.json` で固定され、`mise run setup` が `npm ci` で再現します。
 
 Cloudflare にログインし、`assets-bin` バケットを作成します。
 
 ```sh
-npx wrangler login
-npx wrangler r2 bucket create assets-bin
+mise exec -- npx wrangler login
+mise exec -- npx wrangler r2 bucket create assets-bin
 ```
 
 Cloudflare の R2 管理画面で、対象バケットに対する Object Read & Write 権限の [R2 API token](https://developers.cloudflare.com/r2/api/tokens/) を作成してください。ローカル開発用に設定例をコピーし、Account ID と発行された認証情報を記入します。
@@ -33,8 +36,8 @@ cp .dev.vars.example .dev.vars
 ブラウザから署名付き URL へ直接 `PUT` するため、R2 バケットに CORS を設定します。
 
 ```sh
-npx wrangler r2 bucket cors set assets-bin --file cors.json
-npx wrangler r2 bucket cors list assets-bin
+mise exec -- npx wrangler r2 bucket cors set assets-bin --file cors.json
+mise exec -- npx wrangler r2 bucket cors list assets-bin
 ```
 
 同梱の `cors.json` は、すぐ試せるよう origin を `*` にしています。本番では Workers の URL（例: `https://assets-bin.example.workers.dev`）へ絞ってください。
@@ -42,9 +45,10 @@ npx wrangler r2 bucket cors list assets-bin
 ## ローカル実行と検証
 
 ```sh
-npm run dev
-npm test
-npm run typecheck
+mise run dev
+mise run test
+mise run typecheck
+mise run check
 ```
 
 ## デプロイ
@@ -52,12 +56,12 @@ npm run typecheck
 署名生成用の値を Workers secrets に登録します。`R2_ENDPOINT` はバケット名を含めず、Account ID までの S3 API URL を指定します。
 
 ```sh
-npx wrangler secret put R2_ENDPOINT
+mise exec -- npx wrangler secret put R2_ENDPOINT
 # https://<ACCOUNT_ID>.r2.cloudflarestorage.com
 
-npx wrangler secret put R2_ACCESS_KEY_ID
-npx wrangler secret put R2_SECRET_ACCESS_KEY
-npm run deploy
+mise exec -- npx wrangler secret put R2_ACCESS_KEY_ID
+mise exec -- npx wrangler secret put R2_SECRET_ACCESS_KEY
+mise run deploy
 ```
 
 署名付き URL は [S3 API ドメインでのみ利用可能](https://developers.cloudflare.com/r2/api/s3/presigned-urls/#custom-domains)です。R2 のカスタムドメインを `R2_ENDPOINT` に設定しないでください。

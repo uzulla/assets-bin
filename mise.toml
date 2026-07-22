@@ -1,0 +1,48 @@
+min_version = "2025.12.0"
+
+[tools]
+# Keep npm first so its pin takes precedence over the version bundled with Node.
+npm = "11.18.0"
+node = "24.18.0"
+
+[tasks.setup]
+description = "Install npm dependencies from the lockfile"
+run = "npm ci"
+sources = ["mise.toml", "package.json", "package-lock.json"]
+outputs = ["node_modules/.package-lock.json"]
+
+[tasks.dev]
+description = "Start the local Cloudflare Workers development server"
+depends = ["setup"]
+run = "npm run dev"
+raw = true
+
+[tasks.test]
+description = "Run the test suite"
+depends = ["setup"]
+run = "npm test"
+
+[tasks.typecheck]
+description = "Run the TypeScript type checker"
+depends = ["setup"]
+run = "npm run typecheck"
+
+[tasks."deploy:dry-run"]
+description = "Build the Worker without deploying it"
+depends = ["setup"]
+run = "npm run deploy -- --dry-run"
+
+[tasks.check]
+description = "Run all checks required before deployment"
+depends = ["setup"]
+run = [
+  "npm run typecheck",
+  "npm test",
+  "npm run deploy -- --dry-run",
+]
+
+[tasks.deploy]
+description = "Deploy the Worker to Cloudflare"
+depends = ["setup"]
+run = "npm run deploy"
+raw = true
