@@ -83,3 +83,7 @@ mise run deploy
 ```
 
 初期版のため、認証・一覧・削除・multipart upload は実装していません。単一 `PUT` で扱える上限は 5 GiB です。
+
+## ライセンス
+
+[MIT License](LICENSE)
