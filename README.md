@@ -16,38 +16,11 @@ mise run setup
 
 `mise.toml` で Node.js と npm のバージョンを固定しています。Wrangler、TypeScript、Vitest などのプロジェクト固有ツールは `package-lock.json` で固定され、`mise run setup` が `npm ci` で再現します。
 
-Cloudflare にログインし、R2 バケットを作成します。バケット名は任意です（このドキュメントでは `assets-bin` を例にします）。
-
-```sh
-mise exec -- npx wrangler login
-mise exec -- npx wrangler r2 bucket create assets-bin
-```
-
-`assets-bin` 以外の名前にした場合は、`wrangler.jsonc` の次の2箇所を同じ名前に変更してください。
-
-- `vars.R2_BUCKET_NAME` — 署名付き URL の生成に使用
-- `r2_buckets[0].bucket_name` — 存在確認に使う R2 バインディング
-
-Cloudflare の R2 管理画面で、対象バケットに対する Object Read & Write 権限の [R2 API token](https://developers.cloudflare.com/r2/api/tokens/) を作成してください。ローカル開発用に設定例をコピーし、Account ID と発行された認証情報を記入します。
-
-```sh
-cp .dev.vars.example .dev.vars
-```
-
-`wrangler.jsonc` の R2 バインディングは `remote: true` にしてあります。したがって `npm run dev` からのアップロードと存在確認も、本番と同じ R2 バケットを使用します。
-
-## CORS
-
-ブラウザから署名付き URL へ直接 `PUT` するため、R2 バケットに CORS を設定します。
-
-```sh
-mise exec -- npx wrangler r2 bucket cors set <バケット名> --file cors.json
-mise exec -- npx wrangler r2 bucket cors list <バケット名>
-```
-
-同梱の `cors.json` は、すぐ試せるよう origin を `*` にしています。本番では Workers の URL（例: `https://assets-bin.example.workers.dev`）へ絞ってください。
+Cloudflare 側の準備（アカウント、R2 バケット、CORS、認証情報、secrets）は [docs/cloudflare-setup.md](docs/cloudflare-setup.md) を参照してください。
 
 ## ローカル実行と検証
+
+ローカル開発には `.dev.vars` が必要です（作成方法は [docs/cloudflare-setup.md](docs/cloudflare-setup.md)）。`wrangler.jsonc` の R2 バインディングは `remote: true` にしてあるため、`mise run dev` からのアップロードと存在確認も、本番と同じ R2 バケットを使用します。
 
 ```sh
 mise run dev
@@ -58,18 +31,14 @@ mise run check
 
 ## デプロイ
 
-署名生成用の値を Workers secrets に登録します。`R2_ENDPOINT` はバケット名を含めず、Account ID までの S3 API URL を指定します。
+初回は [docs/cloudflare-setup.md](docs/cloudflare-setup.md) の手順で secrets の登録まで済ませてから実行してください。
 
 ```sh
-mise exec -- npx wrangler secret put R2_ENDPOINT
-# https://<ACCOUNT_ID>.r2.cloudflarestorage.com
-
-mise exec -- npx wrangler secret put R2_ACCESS_KEY_ID
-mise exec -- npx wrangler secret put R2_SECRET_ACCESS_KEY
+mise run check
 mise run deploy
 ```
 
-署名付き URL は [S3 API ドメインでのみ利用可能](https://developers.cloudflare.com/r2/api/s3/presigned-urls/#custom-domains)です。R2 のカスタムドメインを `R2_ENDPOINT` に設定しないでください。
+デプロイ後の動作確認手順は [docs/manual_qa.md](docs/manual_qa.md) にあります。
 
 ## API
 
