@@ -51,7 +51,7 @@ app.post("/files", async (c) => {
   }
 
   const filename = body.filename as string;
-  const contentType = body.contentType as string;
+  const contentType = normalizeContentType(body.contentType as string);
   const id = crypto.randomUUID();
   const metadataFilename = encodeURIComponent(filename);
   const client = createR2Client(c.env);
@@ -150,6 +150,14 @@ function validateUpload(body: UploadRequest): string | undefined {
     return "contentType の形式が正しくありません";
   }
   return undefined;
+}
+
+// charset のないテキストは UTF-8 以外として解釈されうるため、明示して文字化けを防ぐ
+function normalizeContentType(contentType: string): string {
+  if (/^text\//i.test(contentType) && !/;\s*charset=/i.test(contentType)) {
+    return `${contentType}; charset=utf-8`;
+  }
+  return contentType;
 }
 
 function createR2Client(env: Bindings): AwsClient {

@@ -64,6 +64,33 @@ describe("assets-bin", () => {
   });
 
   it.each([
+    ["text/plain", "text/plain; charset=utf-8"],
+    ["text/markdown", "text/markdown; charset=utf-8"],
+    ["text/plain; charset=shift_jis", "text/plain; charset=shift_jis"],
+    ["application/json", "application/json"],
+    ["image/png", "image/png"],
+  ])(
+    "adds charset=utf-8 to charset-less text types (%s)",
+    async (contentType, expected) => {
+      const response = await app.request(
+        "/files",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: "test.txt", contentType }),
+        },
+        env(),
+      );
+
+      expect(response.status).toBe(201);
+      const result = await response.json<{
+        upload: { headers: Record<string, string> };
+      }>();
+      expect(result.upload.headers["Content-Type"]).toBe(expected);
+    },
+  );
+
+  it.each([
     [{ contentType: "image/png" }, "filename は必須です"],
     [{ filename: "test.png" }, "contentType は必須です"],
     [
