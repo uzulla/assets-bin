@@ -9,9 +9,13 @@ const signingEnv = {
   R2_SECRET_ACCESS_KEY: "test-secret-key",
 };
 
-function env(headResult: Partial<R2Object> | null = null) {
+function env(
+  headResult: Partial<R2Object> | null = null,
+  extra: Record<string, string> = {},
+) {
   return {
     ...signingEnv,
+    ...extra,
     FILES: {
       head: vi.fn().mockResolvedValue(headResult),
     } as unknown as R2Bucket,
@@ -114,6 +118,69 @@ describe("assets-bin", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ error });
+  });
+
+  describe("upload password", () => {
+    const uploadBody = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename: "test.png", contentType: "image/png" }),
+    };
+    const protectedEnv = () => env(null, { UPLOAD_PASSWORD: "hunter2" });
+
+    it("requires the password when UPLOAD_PASSWORD is set", async () => {
+      const response = await app.request("/files", uploadBody, protectedEnv());
+
+      expect(response.status).toBe(401);
+      expect(response.headers.get("WWW-Authenticate")).toBe("Bearer");
+      expect(await response.json()).toEqual({
+        error: "アップロードにはパスワードが必要です",
+      });
+    });
+
+    it("rejects a wrong password", async () => {
+      const response = await app.request(
+        "/files",
+        {
+          ...uploadBody,
+          headers: { ...uploadBody.headers, Authorization: "Bearer nope" },
+        },
+        protectedEnv(),
+      );
+
+      expect(response.status).toBe(401);
+    });
+
+    it("accepts the correct password", async () => {
+      const response = await app.request(
+        "/files",
+        {
+          ...uploadBody,
+          headers: { ...uploadBody.headers, Authorization: "Bearer hunter2" },
+        },
+        protectedEnv(),
+      );
+
+      expect(response.status).toBe(201);
+    });
+
+    it("does not protect downloads", async () => {
+      const response = await app.request(
+        "/files/91abbaca-e0e7-4a39-a9b4-7aafa7f1bb09",
+        {},
+        env({ customMetadata: {} }, { UPLOAD_PASSWORD: "hunter2" }),
+      );
+
+      expect(response.status).toBe(302);
+    });
+
+    it("shows the password field only when required", async () => {
+      const withPassword = await app.request("/", {}, protectedEnv());
+      expect(await withPassword.text()).toContain('id="password"');
+
+      const withoutPassword = await app.request("/", {}, env());
+      expect(await withoutPassword.text()).not.toContain('id="password"');
+    });
   });
 
   it("rejects malformed JSON", async () => {

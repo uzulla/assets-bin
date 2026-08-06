@@ -9,6 +9,7 @@ type Bindings = {
   R2_BUCKET_NAME: string;
   R2_ACCESS_KEY_ID: string;
   R2_SECRET_ACCESS_KEY: string;
+  UPLOAD_PASSWORD?: string;
 };
 
 type AppEnv = { Bindings: Bindings };
@@ -35,9 +36,17 @@ app.use("*", async (c, next) => {
   }
 });
 
-app.get("/", (c) => c.html(homePage));
+app.get("/", (c) => c.html(homePage(Boolean(c.env.UPLOAD_PASSWORD))));
 
 app.post("/files", async (c) => {
+  if (!isUploadAuthorized(c.req.header("Authorization"), c.env.UPLOAD_PASSWORD)) {
+    return c.json(
+      { error: "アップロードにはパスワードが必要です" },
+      401,
+      { "WWW-Authenticate": "Bearer" },
+    );
+  }
+
   let body: UploadRequest;
   try {
     body = await c.req.json<UploadRequest>();
@@ -152,6 +161,32 @@ function validateUpload(body: UploadRequest): string | undefined {
   return undefined;
 }
 
+function isUploadAuthorized(
+  header: string | undefined,
+  password: string | undefined,
+): boolean {
+  if (!password) {
+    return true;
+  }
+  const provided = header?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!provided) {
+    return false;
+  }
+  const encoder = new TextEncoder();
+  return timingSafeEqualBytes(encoder.encode(provided), encoder.encode(password));
+}
+
+function timingSafeEqualBytes(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.byteLength !== b.byteLength) {
+    return false;
+  }
+  let diff = 0;
+  for (let i = 0; i < a.byteLength; i++) {
+    diff |= (a[i] ?? 0) ^ (b[i] ?? 0);
+  }
+  return diff === 0;
+}
+
 // charset のないテキストは UTF-8 以外として解釈されうるため、明示して文字化けを防ぐ
 function normalizeContentType(contentType: string): string {
   if (/^text\//i.test(contentType) && !/;\s*charset=/i.test(contentType)) {
@@ -207,7 +242,7 @@ function contentDisposition(filename: string): string {
   return `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
 }
 
-const homePage = html`<!doctype html>
+const homePage = (passwordRequired: boolean) => html`<!doctype html>
   <html lang="ja">
     <head>
       <meta charset="utf-8" />
@@ -227,6 +262,7 @@ const homePage = html`<!doctype html>
         form { margin-top: 32px; padding: 28px; border: 1px solid #d6d7d1; border-radius: 18px; background: #fff; box-shadow: 0 12px 40px #24251f12; }
         input, button { box-sizing: border-box; width: 100%; font: inherit; }
         input { padding: 18px; border: 1px dashed #a5a79f; border-radius: 12px; }
+        #password { margin-top: 10px; padding: 13px 18px; border-style: solid; }
         button { margin-top: 14px; padding: 13px; border: 0; border-radius: 999px; background: #272822; color: #fff; cursor: pointer; font-weight: 650; }
         button:disabled { opacity: .45; cursor: wait; }
         #result { display: none; margin-top: 20px; overflow-wrap: anywhere; }
@@ -247,6 +283,16 @@ const homePage = html`<!doctype html>
         <p>ファイルを選ぶと、Workers を経由せず R2 へ直接保存します。</p>
         <form id="upload-form">
           <input id="file" name="file" type="file" required />
+          ${passwordRequired
+            ? html`<input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="アップロードパスワード"
+                autocomplete="current-password"
+                required
+              />`
+            : ""}
           <button type="submit">アップロード</button>
           <div id="result" role="status"></div>
         </form>
@@ -254,6 +300,7 @@ const homePage = html`<!doctype html>
       <script>
         const form = document.querySelector('#upload-form');
         const input = document.querySelector('#file');
+        const passwordInput = document.querySelector('#password');
         const button = form.querySelector('button');
         const result = document.querySelector('#result');
 
@@ -266,9 +313,13 @@ const homePage = html`<!doctype html>
           result.textContent = 'アップロード中…';
 
           try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (passwordInput) {
+              headers.Authorization = 'Bearer ' + passwordInput.value;
+            }
             const create = await fetch('/files', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers,
               body: JSON.stringify({
                 filename: file.name,
                 contentType: file.type || 'application/octet-stream',

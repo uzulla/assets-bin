@@ -6,3 +6,4 @@ dist/
 *.log
 mise.local.toml
 mise.local.lock
+tmp/

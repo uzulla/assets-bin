@@ -47,6 +47,8 @@ mise run deploy
 - `GET /files/:id/raw` — 通常表示用 URL へリダイレクト
 - `GET /files/:id/download` — 元のファイル名を使うダウンロード URL へリダイレクト
 
+secret `UPLOAD_PASSWORD` を設定すると、`POST /files` に `Authorization: Bearer <パスワード>` ヘッダが必須になります（不一致は `401`）。未設定なら認証なしでアップロードできます。表示・ダウンロードは設定に関係なく認証なしです（URL の UUID が類推不能であることを前提としています）。
+
 アップロード要求の例:
 
 ```json
@@ -57,6 +59,8 @@ mise run deploy
 ```
 
 初期版のため、認証・一覧・削除・multipart upload は実装していません。単一 `PUT` で扱える上限は 5 GiB です。
+
+AI エージェントから利用する場合（GitHub Issue への画像添付など）の手順は [docs/agent-usage.md](docs/agent-usage.md) にあります。
 
 ## ライセンス
 

@@ -135,6 +135,14 @@ mise exec -- npx wrangler secret put R2_SECRET_ACCESS_KEY
 
 `.dev.vars` と同じ値を一括で入れたい場合は、`{"R2_ENDPOINT": "...", ...}` 形式の JSON ファイルを作って `wrangler secret bulk <ファイル>` でも登録できます。この JSON はリポジトリ外（一時ディレクトリなど）に置き、登録後に削除してください。
 
+アップロードをパスワード必須にする場合は、あわせて登録します（任意。未設定なら誰でもアップロード可能）。
+
+```sh
+mise exec -- npx wrangler secret put UPLOAD_PASSWORD
+```
+
+secret の追加・変更は再デプロイ不要で反映されますが、全エッジに行き渡るまで1〜2分ほどかかり、その間は新旧の挙動が混在することがあります。
+
 署名付き URL は [S3 API ドメインでのみ利用可能](https://developers.cloudflare.com/r2/api/s3/presigned-urls/#custom-domains)です。R2 のカスタムドメインを `R2_ENDPOINT` に設定しないでください。
 
 ## 10. 動作確認

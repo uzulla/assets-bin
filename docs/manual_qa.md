@@ -135,6 +135,23 @@ curl -s -w ' -> %{http_code}\n' "$BASE/files/00000000-0000-4000-8000-00000000000
 curl -s -w ' -> %{http_code}\n' "$BASE/nonexistent-path"
 ```
 
+## パスワード保護（`UPLOAD_PASSWORD` 設定時のみ）
+
+secret `UPLOAD_PASSWORD` を設定した環境では、次も確認します。
+
+```sh
+# Authorization なし → 401
+curl -s -w ' -> %{http_code}\n' -X POST "$BASE/files" -H 'Content-Type: application/json' --data '{"filename":"a.png","contentType":"image/png"}'
+
+# 誤ったパスワード → 401
+curl -s -w ' -> %{http_code}\n' -X POST "$BASE/files" -H 'Content-Type: application/json' -H 'Authorization: Bearer wrong' --data '{"filename":"a.png","contentType":"image/png"}'
+
+# 正しいパスワード → 201
+curl -s -o /dev/null -w '%{http_code}\n' -X POST "$BASE/files" -H 'Content-Type: application/json' -H "Authorization: Bearer <パスワード>" --data '{"filename":"a.png","contentType":"image/png"}'
+```
+
+トップページにパスワード入力欄が表示されることも確認します（未設定の環境では表示されません）。
+
 ## 後片付け
 
 削除 API は未実装なので、テストで作ったオブジェクトは wrangler で削除します。
