@@ -16,12 +16,17 @@ mise run setup
 
 `mise.toml` で Node.js と npm のバージョンを固定しています。Wrangler、TypeScript、Vitest などのプロジェクト固有ツールは `package-lock.json` で固定され、`mise run setup` が `npm ci` で再現します。
 
-Cloudflare にログインし、`assets-bin` バケットを作成します。
+Cloudflare にログインし、R2 バケットを作成します。バケット名は任意です（このドキュメントでは `assets-bin` を例にします）。
 
 ```sh
 mise exec -- npx wrangler login
 mise exec -- npx wrangler r2 bucket create assets-bin
 ```
+
+`assets-bin` 以外の名前にした場合は、`wrangler.jsonc` の次の2箇所を同じ名前に変更してください。
+
+- `vars.R2_BUCKET_NAME` — 署名付き URL の生成に使用
+- `r2_buckets[0].bucket_name` — 存在確認に使う R2 バインディング
 
 Cloudflare の R2 管理画面で、対象バケットに対する Object Read & Write 権限の [R2 API token](https://developers.cloudflare.com/r2/api/tokens/) を作成してください。ローカル開発用に設定例をコピーし、Account ID と発行された認証情報を記入します。
 
@@ -36,8 +41,8 @@ cp .dev.vars.example .dev.vars
 ブラウザから署名付き URL へ直接 `PUT` するため、R2 バケットに CORS を設定します。
 
 ```sh
-mise exec -- npx wrangler r2 bucket cors set assets-bin --file cors.json
-mise exec -- npx wrangler r2 bucket cors list assets-bin
+mise exec -- npx wrangler r2 bucket cors set <バケット名> --file cors.json
+mise exec -- npx wrangler r2 bucket cors list <バケット名>
 ```
 
 同梱の `cors.json` は、すぐ試せるよう origin を `*` にしています。本番では Workers の URL（例: `https://assets-bin.example.workers.dev`）へ絞ってください。
