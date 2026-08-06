@@ -4,6 +4,7 @@ min_version = "2025.12.0"
 # Keep npm first so its pin takes precedence over the version bundled with Node.
 npm = "11.18.0"
 node = "24.18.0"
+jq = "latest"
 
 [tasks.setup]
 description = "Install npm dependencies from the lockfile"
