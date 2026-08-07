@@ -9,9 +9,20 @@ AI エージェント（Claude Code など）が、GitHub Issue への画像添�
 - ダウンロード側に認証はありません。**URL を知っている人は誰でもファイルを取得できます。機密情報・個人情報はアップロードしないでください**
 - 単一 `PUT` の上限は 5 GiB、multipart 非対応
 
-## アップロード手順
+## アップロード手順（スクリプト）
 
-2ステップです: (1) `POST /files` でアップロード先を発行 → (2) 返された署名付き URL へファイル本体を `PUT`。
+同梱の [tools/upload.py](../tools/upload.py)（Python 3 標準ライブラリのみ、依存なし）を使うのが最も簡単です。成功すると共有 URL だけを標準出力に出力します。
+
+```sh
+python3 tools/upload.py --base="$BASE" --password=<パスワード> screenshot.png
+# → https://assets-bin.example.workers.dev/files/<UUID>
+```
+
+`--password` はサーバーが `UPLOAD_PASSWORD` を設定している場合のみ必要です。`--base` / `--password` は環境変数 `ASSETS_BIN_BASE` / `ASSETS_BIN_PASSWORD` でも指定できます。contentType はファイル名から自動判定します。
+
+## アップロード手順（curl）
+
+スクリプトを使わない場合は2ステップです: (1) `POST /files` でアップロード先を発行 → (2) 返された署名付き URL へファイル本体を `PUT`。
 
 ```sh
 BASE=https://<worker名>.<サブドメイン>.workers.dev

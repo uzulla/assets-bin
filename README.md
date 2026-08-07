@@ -8,6 +8,12 @@ Cloudflare Workers と R2 で動く、小さなファイル置き場です。Hon
 
 GitHub Issue への画像添付など、AI エージェント（Claude Code など）から利用する場合の手順は [docs/agent-usage.md](docs/agent-usage.md) にまとめてあります。エージェントの設定（CLAUDE.md など）にデプロイ先 URL とともに貼り付けて使えます。
 
+依存なしのアップロードスクリプト [tools/upload.py](tools/upload.py) も同梱しています。
+
+```sh
+python3 tools/upload.py --base=https://assets-bin.example.workers.dev [--password=...] ファイル
+```
+
 ## セットアップ
 
 開発ツールは [mise](https://mise.jdx.dev/) で管理します。mise `2025.12.0` 以上を用意し、Node.js 24 LTS、npm、プロジェクト依存関係をインストールします。
