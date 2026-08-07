@@ -42,6 +42,8 @@ mise run deploy
 
 ## API
 
+詳細な仕様は [docs/spec.md](docs/spec.md) を参照してください。
+
 - `POST /files` — 15分有効な署名付き PUT URL を発行
 - `GET /files/:id` — 5分有効な通常表示用 URL へリダイレクト
 - `GET /files/:id/raw` — 通常表示用 URL へリダイレクト
