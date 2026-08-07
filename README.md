@@ -4,6 +4,10 @@ Cloudflare Workers と R2 で動く、小さなファイル置き場です。Hon
 
 ファイル本体は Workers を通りません。API が発行した署名付き URL を使ってブラウザから R2 へ直接アップロードし、表示・ダウンロード時も期限付きの R2 URL へリダイレクトします。
 
+## AI エージェントからの利用
+
+GitHub Issue への画像添付など、AI エージェント（Claude Code など）から利用する場合の手順は [docs/agent-usage.md](docs/agent-usage.md) にまとめてあります。エージェントの設定（CLAUDE.md など）にデプロイ先 URL とともに貼り付けて使えます。
+
 ## セットアップ
 
 開発ツールは [mise](https://mise.jdx.dev/) で管理します。mise `2025.12.0` 以上を用意し、Node.js 24 LTS、npm、プロジェクト依存関係をインストールします。
@@ -60,9 +64,7 @@ secret `UPLOAD_PASSWORD` を設定すると、`POST /files` に `Authorization: 
 }
 ```
 
-初期版のため、認証・一覧・削除・multipart upload は実装していません。単一 `PUT` で扱える上限は 5 GiB です。
-
-AI エージェントから利用する場合（GitHub Issue への画像添付など）の手順は [docs/agent-usage.md](docs/agent-usage.md) にあります。
+一覧・削除・multipart upload はありません。単一 `PUT` で扱える上限は 5 GiB です。
 
 ## ライセンス
 
