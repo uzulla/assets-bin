@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,21 +20,31 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
-      # デプロイ先アカウントに合わせて Worker 名 / R2 バケット名を変えたい場合は、
-      # リポジトリの Variables に WORKER_NAME / R2_BUCKET_NAME を設定する。
-      # 未設定なら wrangler.jsonc の値（assets-bin）をそのまま使う。
-      - name: Override worker/bucket name from repository variables
-        if: vars.WORKER_NAME != '' || vars.R2_BUCKET_NAME != ''
+  deploy:
+    # 事故防止のため、デプロイ先をリポジトリの Variables（WORKER_NAME / R2_BUCKET_NAME）で
+    # 明示したリポジトリでのみデプロイする。未設定ならテストのみ実行し、このジョブはスキップされる。
+    if: vars.WORKER_NAME != '' && vars.R2_BUCKET_NAME != ''
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Apply deploy target from repository variables
         env:
           WORKER_NAME: ${{ vars.WORKER_NAME }}
           R2_BUCKET_NAME: ${{ vars.R2_BUCKET_NAME }}
         run: |
           grep -v '^[[:space:]]*//' wrangler.jsonc | jq '
-            (if (env.WORKER_NAME // "") != "" then .name = env.WORKER_NAME else . end)
-            | (if (env.R2_BUCKET_NAME // "") != "" then
-                .vars.R2_BUCKET_NAME = env.R2_BUCKET_NAME
-                | .r2_buckets[0].bucket_name = env.R2_BUCKET_NAME
-              else . end)
+            .name = env.WORKER_NAME
+            | .vars.R2_BUCKET_NAME = env.R2_BUCKET_NAME
+            | .r2_buckets[0].bucket_name = env.R2_BUCKET_NAME
           ' > wrangler.override.json
           mv wrangler.override.json wrangler.jsonc
           echo "Effective config:" && cat wrangler.jsonc
